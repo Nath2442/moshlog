@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TERMINAL</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --glow: #33ff33;
+  --glow-dim: #1a8c1a;
+  --glow-bright: #66ff66;
+  --bg: #050505;
+  --bg-screen: #0a0c0a;
+  --amber: #ffb000;
+  --amber-glow: rgba(255, 176, 0, 0.4);
+  --red: #ff3333;
+  --red-glow: rgba(255, 51, 51, 0.4);
+  --scanline: rgba(0, 0, 0, 0.18);
+}
+
+@keyframes flicker {
+  0%   { opacity: 0.97; }
+  2%   { opacity: 0.92; }
+  4%   { opacity: 0.98; }
+  8%   { opacity: 0.93; }
+  10%  { opacity: 0.97; }
+  20%  { opacity: 0.96; }
+  39%  { opacity: 0.98; }
+  40%  { opacity: 0.91; }
+  41%  { opacity: 0.97; }
+  50%  { opacity: 0.96; }
+  60%  { opacity: 0.98; }
+  70%  { opacity: 0.95; }
+  80%  { opacity: 0.97; }
+  90%  { opacity: 0.94; }
+  100% { opacity: 0.97; }
+}
+
+@keyframes scanmove {
+  0%   { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+@keyframes chromatic {
+  0%   { text-shadow: -1px 0 rgba(255,0,0,0.06), 1px 0 rgba(0,255,0,0.06), 0 0 4px var(--glow), 0 0 10px var(--glow-dim); }
+  50%  { text-shadow: -0.5px 0 rgba(255,0,0,0.03), 0.5px 0 rgba(0,255,0,0.03), 0 0 6px var(--glow), 0 0 14px var(--glow-dim), 0 0 28px rgba(51,255,51,0.1); }
+  100% { text-shadow: -1px 0 rgba(255,0,0,0.06), 1px 0 rgba(0,255,0,0.06), 0 0 4px var(--glow), 0 0 10px var(--glow-dim); }
+}
+
+@keyframes bootFlash {
+  0%   { opacity: 0; filter: brightness(3); }
+  30%  { opacity: 1; filter: brightness(1.8); }
+  100% { opacity: 1; filter: brightness(1); }
+}
+
+@keyframes powerOn {
+  0%   { transform: scaleY(0.005) scaleX(0.5); filter: brightness(8); }
+  20%  { transform: scaleY(0.005) scaleX(1); filter: brightness(6); }
+  40%  { transform: scaleY(1) scaleX(1); filter: brightness(2); }
+  60%  { transform: scaleY(1) scaleX(1); filter: brightness(1.2); }
+  100% { transform: scaleY(1) scaleX(1); filter: brightness(1); }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+html, body {
+  background: #000;
+  color: var(--glow);
+  font-family: 'VT323', 'Courier New', monospace;
+  overflow: hidden;
+  height: 100%;
+  width: 100%;
+}
+
+/* Outer bezel */
+#bezel {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+  padding: 8px;
+}
+
+/* CRT screen */
+#crt {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  animation: flicker 5s infinite, powerOn 0.8s ease-out;
+  border-radius: 12px;
+  background: var(--bg-screen);
+  box-shadow:
+    inset 0 0 80px rgba(51, 255, 51, 0.04),
+    inset 0 0 20px rgba(0, 0, 0, 0.6),
+    0 0 30px rgba(51, 255, 51, 0.08),
+    0 0 60px rgba(51, 255, 51, 0.03);
+}
+
+/* Scanlines */
+#crt::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 1px,
+    var(--scanline) 1px,
+    var(--scanline) 3px
+  );
+  pointer-events: none;
+  z-index: 10;
+  border-radius: 12px;
+}
+
+/* Vignette */
+#crt::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 40%,
+    rgba(0, 0, 0, 0.25) 65%,
+    rgba(0, 0, 0, 0.55) 100%
+  );
+  pointer-events: none;
+  z-index: 11;
+  border-radius: 12px;
+}
+
+/* Moving scanline bar */
+#scanbar {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 80px;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(51, 255, 51, 0.03) 30%,
+    rgba(51, 255, 51, 0.06) 50%,
+    rgba(51, 255, 51, 0.03) 70%,
+    transparent
+  );
+  animation: scanmove 6s linear infinite;
+  pointer-events: none;
+  z-index: 12;
+}
+
+/* Phosphor glow */
+.phosphor-overlay {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, rgba(51,255,51,0.015) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+  border-radius: 12px;
+}
+
+/* Screen content */
+#screen {
+  height: 100%;
+  padding: 28px 32px;
+  overflow-y: auto;
+  font-size: 20px;
+  line-height: 1.55;
+  position: relative;
+  z-index: 1;
+  scrollbar-width: thin;
+  scrollbar-color: var(--glow-dim) transparent;
+}
+#screen::-webkit-scrollbar { width: 4px; }
+#screen::-webkit-scrollbar-track { background: transparent; }
+#screen::-webkit-scrollbar-thumb { background: var(--glow-dim); border-radius: 2px; }
+
+/* Text lines */
+.line {
+  white-space: pre-wrap;
+  animation: chromatic 4s ease-in-out infinite;
+  min-height: 1.55em;
+  word-break: break-word;
+}
+
+.boot-line {
+  white-space: pre-wrap;
+  animation: bootFlash 0.3s ease-out, chromatic 4s ease-in-out infinite;
+  min-height: 1.55em;
+}
+
+/* Logo title — large glowing text */
+.logo-line {
+  white-space: pre;
+  font-family: 'VT323', 'Courier New', monospace;
+  font-size: 42px;
+  line-height: 1.1;
+  letter-spacing: 12px;
+  animation: bootFlash 0.4s ease-out, chromatic 4s ease-in-out infinite;
+  color: var(--glow-bright);
+  text-shadow:
+    0 0 10px var(--glow),
+    0 0 20px var(--glow),
+    0 0 40px var(--glow-dim),
+    0 0 80px rgba(51,255,51,0.15);
+  text-align: center;
+  padding: 4px 0;
+}
+
+/* Subtitle under logo */
+.logo-sub {
+  white-space: pre;
+  font-family: 'VT323', 'Courier New', monospace;
+  font-size: 22px;
+  line-height: 1.4;
+  letter-spacing: 8px;
+  animation: bootFlash 0.4s ease-out, chromatic 4s ease-in-out infinite;
+  color: var(--glow);
+  text-shadow: 0 0 6px var(--glow), 0 0 14px var(--glow-dim);
+  text-align: center;
+  padding: 2px 0;
+}
+
+/* Decorative border line for logo area */
+.logo-border {
+  white-space: pre;
+  font-family: 'Share Tech Mono', 'Courier New', monospace;
+  font-size: 16px;
+  line-height: 1.2;
+  animation: bootFlash 0.3s ease-out, chromatic 4s ease-in-out infinite;
+  color: var(--glow-dim);
+  text-shadow: 0 0 4px rgba(51,255,51,0.2);
+  text-align: center;
+  letter-spacing: 2px;
+}
+
+.dim {
+  color: var(--glow-dim);
+  text-shadow: 0 0 4px rgba(51,255,51,0.15);
+}
+
+.amber {
+  color: var(--amber);
+  text-shadow: 0 0 6px var(--amber-glow), 0 0 14px rgba(255,176,0,0.15);
+}
+
+.red {
+  color: var(--red);
+  text-shadow: 0 0 6px var(--red-glow), 0 0 14px rgba(255,51,51,0.15);
+}
+
+/* Prompt */
+.prompt-row {
+  display: flex;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.prompt-prefix {
+  color: var(--glow-bright);
+  margin-right: 10px;
+  white-space: pre;
+  text-shadow: 0 0 8px var(--glow), 0 0 16px rgba(51,255,51,0.2);
+}
+
+#input {
+  background: transparent;
+  border: none;
+  color: var(--glow);
+  font-family: 'VT323', 'Courier New', monospace;
+  font-size: 20px;
+  outline: none;
+  flex: 1;
+  caret-color: var(--glow-bright);
+  text-shadow: 0 0 4px var(--glow), 0 0 8px var(--glow-dim);
+  letter-spacing: 0.5px;
+}
+
+/* Clickable files */
+.clickable {
+  color: var(--glow-bright);
+  cursor: pointer;
+  padding: 2px 6px;
+  transition: all 0.12s ease;
+  text-shadow: 0 0 6px var(--glow);
+  border: 1px solid transparent;
+}
+.clickable:hover {
+  background: var(--glow);
+  color: var(--bg);
+  text-shadow: none;
+  border-color: var(--glow);
+  box-shadow: 0 0 10px rgba(51,255,51,0.3);
+}
+
+/* Log content */
+.log-content {
+  white-space: pre-wrap;
+  font-family: 'Share Tech Mono', 'VT323', monospace;
+  font-size: 17px;
+  line-height: 1.65;
+  padding: 14px 4px;
+  border-top: 1px solid var(--glow-dim);
+  border-bottom: 1px solid var(--glow-dim);
+  margin: 10px 0;
+  color: var(--glow);
+  text-shadow: 0 0 3px var(--glow), 0 0 8px var(--glow-dim);
+}
+
+/* Tags */
+.locked-tag {
+  color: var(--amber);
+  font-size: 16px;
+  text-shadow: 0 0 4px var(--amber-glow);
+  margin-left: 6px;
+}
+.access-tag {
+  color: var(--glow-dim);
+  font-size: 16px;
+  text-shadow: 0 0 4px rgba(51,255,51,0.1);
+  margin-left: 6px;
+}
+
+/* Loading */
+#loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  font-size: 22px;
+  animation: blink 1s step-end infinite;
+  text-shadow: 0 0 8px var(--glow), 0 0 16px var(--glow-dim);
+}
+</style>
+</head>
+<body>
+<div id="bezel">
+  <div id="crt">
+    <div class="phosphor-overlay"></div>
+    <div id="scanbar"></div>
+    <div id="screen">
+      <div id="loading">ESTABLISHING LINK...</div>
+      <div id="output" style="display:none"></div>
+      <div id="prompt-area" class="prompt-row" style="display:none">
+        <span class="prompt-prefix" id="prompt-label"></span>
+        <input id="input" type="text" spellcheck="false" autocomplete="off" autocapitalize="off">
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script>
+(function() {
+  'use strict';
+
+  var ACCESS = { GENERAL: 0, MEDICAL: 1, SCIENCE: 2, SECURITY: 3, COMMAND: 4 };
+
+  var params = new URLSearchParams(window.location.search);
+  var terminalKey = (params.get('t') || 'default').toLowerCase();
+
+  if (typeof TERMINAL_CONFIG === 'undefined') {
+    document.getElementById('loading').textContent = 'ERROR: config.js NOT FOUND';
+    document.getElementById('loading').className = 'red';
+    return;
+  }
+
+  var cfg = TERMINAL_CONFIG;
+  var terminal = cfg.terminals[terminalKey] || cfg.terminals['default'];
+  if (!terminal) {
+    document.getElementById('loading').textContent = 'ERROR: NO TERMINAL PROFILE FOUND';
+    document.getElementById('loading').className = 'red';
+    return;
+  }
+
+  var CORP_NAME = cfg.corporationName || 'NAKATOMI CORPORATION';
+  var TERM_NAME = terminal.name || 'TERMINAL';
+  var TERM_ACCESS = terminal.accessLevel || 'GENERAL';
+  var TERM_VERSION = terminal.version || cfg.defaultVersion || 'v1.0.0';
+  var BOOT_MSGS = terminal.bootMessages || cfg.defaultBootMessages || [];
+  var LOGS = terminal.logs || [];
+
+  var screen = document.getElementById('screen');
+  var output = document.getElementById('output');
+  var promptArea = document.getElementById('prompt-area');
+  var promptLabel = document.getElementById('prompt-label');
+  var input = document.getElementById('input');
+  var loading = document.getElementById('loading');
+  var passwordMode = null;
+
+  promptLabel.textContent = TERM_NAME + '>';
+  document.title = CORP_NAME + ' \u2014 ' + TERM_NAME;
+
+  function scrollBottom() { screen.scrollTop = screen.scrollHeight; }
+
+  function addLine(text, className, isBoot) {
+    var div = document.createElement('div');
+    div.className = (isBoot ? 'boot-line' : 'line') + (className ? ' ' + className : '');
+    div.textContent = (typeof text === 'string' && text !== '') ? text : '\u00A0';
+    output.appendChild(div);
+    scrollBottom();
+    return div;
+  }
+
+  function addLogoLine(text, className) {
+    var div = document.createElement('div');
+    div.className = className || 'logo-line';
+    div.textContent = text;
+    output.appendChild(div);
+    scrollBottom();
+    return div;
+  }
+
+  function addHTML(html) {
+    var div = document.createElement('div');
+    div.className = 'line';
+    div.innerHTML = html;
+    output.appendChild(div);
+    scrollBottom();
+    return div;
+  }
+
+  function addLogContent(text) {
+    var div = document.createElement('div');
+    div.className = 'log-content';
+    div.textContent = text;
+    output.appendChild(div);
+    scrollBottom();
+  }
+
+  function addCommandLine(text) {
+    var div = document.createElement('div');
+    div.className = 'prompt-row';
+    div.innerHTML = '<span class="prompt-prefix">' + escHtml(TERM_NAME) + '></span><span class="line">' + escHtml(text) + '</span>';
+    output.appendChild(div);
+    scrollBottom();
+  }
+
+  function escHtml(s) {
+    var d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  function getAccess(level) { return ACCESS[level] !== undefined ? ACCESS[level] : 0; }
+
+  // ── BOOT SEQUENCE ──
+  function boot() {
+    output.innerHTML = '';
+    output.style.display = 'block';
+    promptArea.style.display = 'none';
+    loading.style.display = 'none';
+
+    // Logo — rendered as styled text via CSS, no ASCII art alignment issues
+    var logoElements = [
+      { type: 'border', text: '================================' },
+      { type: 'blank' },
+      { type: 'title', text: 'NAKATOMI' },
+      { type: 'subtitle', text: 'C O R P O R A T I O N' },
+      { type: 'blank' },
+      { type: 'border', text: '================================' },
+    ];
+
+    var textLines = [];
+    textLines.push('');
+    textLines.push('  TERMINAL OS ' + TERM_VERSION);
+    textLines.push('  (C) ' + CORP_NAME + '. ALL RIGHTS RESERVED.');
+    textLines.push('');
+    textLines.push('  ----------------------------------------');
+    textLines.push('');
+
+    var bootCheckLines = [];
+    BOOT_MSGS.forEach(function(msg) { bootCheckLines.push('  ' + msg); });
+
+    var statusLines = [];
+    statusLines.push('');
+    statusLines.push('  ========================================');
+    statusLines.push('  TERMINAL: ' + TERM_NAME);
+    statusLines.push('  ACCESS LEVEL: ' + TERM_ACCESS);
+    statusLines.push('  STATUS: ONLINE');
+    statusLines.push('  ========================================');
+    statusLines.push('');
+    statusLines.push('  Type HELP for available commands.');
+    statusLines.push('');
+
+    var sequence = [];
+    sequence.push({ type: 'blank' });
+    logoElements.forEach(function(l) { sequence.push(l); });
+    textLines.forEach(function(l) { sequence.push({ type: 'boot', text: l }); });
+    var bootStart = sequence.length;
+    bootCheckLines.forEach(function(l) { sequence.push({ type: 'check', text: l }); });
+    var bootEnd = sequence.length;
+    statusLines.forEach(function(l) { sequence.push({ type: 'boot', text: l }); });
+
+    var i = 0;
+    function nextLine() {
+      if (i >= sequence.length) {
+        promptArea.style.display = 'flex';
+        input.focus();
+        return;
+      }
+
+      var item = sequence[i];
+      if (item.type === 'blank') {
+        addLine('', null, true);
+      } else if (item.type === 'title') {
+        addLogoLine(item.text, 'logo-line');
+      } else if (item.type === 'subtitle') {
+        addLogoLine(item.text, 'logo-sub');
+      } else if (item.type === 'border') {
+        addLogoLine(item.text, 'logo-border');
+      } else {
+        addLine(item.text, null, true);
+      }
+      i++;
+
+      var delay;
+      if (item.type === 'title') {
+        delay = 300;
+      } else if (item.type === 'subtitle' || item.type === 'border') {
+        delay = 100;
+      } else if (item.type === 'logo') {
+        delay = 40;
+      } else if (item.type === 'check') {
+        delay = 160 + Math.random() * 200;
+      } else if (i === bootEnd + 1) {
+        delay = 400;
+      } else {
+        delay = 80;
+      }
+
+      setTimeout(nextLine, delay);
+    }
+
+    setTimeout(nextLine, 500);
+  }
+
+  // ── COMMANDS ──
+  function handleCommand(raw) {
+    var trimmed = raw.trim();
+    if (!trimmed) return;
+
+    if (passwordMode !== null) {
+      addCommandLine('\u2022'.repeat(trimmed.length));
+      var log = LOGS[passwordMode.logIndex];
+      if (log && trimmed.toUpperCase() === (log.password || '').toUpperCase()) {
+        addLine('');
+        addLine('ACCESS GRANTED', 'amber');
+        addLine('');
+        displayLog(log);
+      } else {
+        addLine('');
+        addLine('ACCESS DENIED \u2014 INVALID PASSWORD', 'red');
+        addLine('');
+      }
+      passwordMode = null;
+      input.type = 'text';
+      return;
+    }
+
+    addCommandLine(trimmed);
+    var parts = trimmed.toUpperCase().split(/\s+/);
+    var cmd = parts[0];
+
+    switch (cmd) {
+      case 'HELP':
+        addLine('');
+        addLine('+======================================+');
+        addLine('|        AVAILABLE COMMANDS            |');
+        addLine('+======================================+');
+        addLine('|  LIST .... Show available files      |');
+        addLine('|  OPEN .... Open a file by name       |');
+        addLine('|  READ .... Alias for OPEN            |');
+        addLine('|  CAT ..... Alias for OPEN            |');
+        addLine('|  INFO .... Terminal information       |');
+        addLine('|  CLEAR ... Clear screen              |');
+        addLine('|  REBOOT .. Restart terminal          |');
+        addLine('|  HELP .... Show this message         |');
+        addLine('+======================================+');
+        addLine('');
+        addLine('  Or click on [filenames] directly.');
+        addLine('');
+        break;
+
+      case 'LIST': case 'LS': case 'DIR':
+        listFiles();
+        break;
+
+      case 'OPEN': case 'READ': case 'CAT':
+        var fname = parts.slice(1).join(' ').toLowerCase();
+        if (!fname) {
+          addLine('');
+          addLine('  USAGE: OPEN <filename>', 'amber');
+          addLine('');
+        } else {
+          openFile(fname);
+        }
+        break;
+
+      case 'INFO':
+        addLine('');
+        addLine('  CORPORATION: ' + CORP_NAME);
+        addLine('  TERMINAL: ' + TERM_NAME);
+        addLine('  OS VERSION: ' + TERM_VERSION);
+        addLine('  ACCESS LEVEL: ' + TERM_ACCESS);
+        addLine('  FILES LOADED: ' + LOGS.length);
+        addLine('  STATUS: OPERATIONAL');
+        addLine('');
+        break;
+
+      case 'CLEAR': case 'CLS':
+        output.innerHTML = '';
+        break;
+
+      case 'REBOOT':
+        var crt = document.getElementById('crt');
+        crt.style.animation = 'none';
+        void crt.offsetHeight;
+        crt.style.animation = 'flicker 5s infinite, powerOn 0.8s ease-out';
+        boot();
+        return;
+
+      default:
+        var match = LOGS.find(function(l) { return l.filename.toUpperCase() === trimmed; });
+        if (match) {
+          openFile(trimmed.toLowerCase());
+        } else {
+          addLine('');
+          addLine('  UNKNOWN COMMAND: ' + trimmed, 'red');
+          addLine('  Type HELP for available commands.');
+          addLine('');
+        }
+    }
+  }
+
+  function listFiles() {
+    var currentAccess = getAccess(TERM_ACCESS);
+    addLine('');
+    addLine('  DIRECTORY: /' + TERM_NAME.replace(/\s+/g, '_') + '/');
+    addLine('  ACCESS LEVEL: ' + TERM_ACCESS);
+    addLine('  ------------------------------------');
+
+    var accessibleCount = 0;
+    LOGS.forEach(function(log) {
+      var required = getAccess(log.accessLevel);
+      if (required <= currentAccess) {
+        accessibleCount++;
+        var lockTag = log.password ? ' <span class="locked-tag">[LOCKED]</span>' : '';
+        var catTag = ' <span class="access-tag">' + escHtml(log.category) + '</span>';
+        var html = '  <span class="clickable" onclick="window._openFile(\'' + escHtml(log.filename) + '\')">[' + escHtml(log.filename) + ']</span>' + lockTag + catTag;
+        addHTML(html);
+      } else {
+        addLine('  ' + log.filename + '  [ACCESS DENIED -- ' + log.accessLevel + ' REQUIRED]', 'dim');
+      }
+    });
+
+    addLine('  ------------------------------------');
+    addLine('  ' + accessibleCount + ' file(s) accessible');
+    addLine('');
+  }
+
+  function openFile(filename) {
+    var log = LOGS.find(function(l) { return l.filename.toLowerCase() === filename.toLowerCase(); });
+    if (!log) {
+      addLine('');
+      addLine('  FILE NOT FOUND: ' + filename, 'red');
+      addLine('');
+      return;
+    }
+
+    var currentAccess = getAccess(TERM_ACCESS);
+    var required = getAccess(log.accessLevel);
+
+    if (required > currentAccess) {
+      addLine('');
+      addLine('  ACCESS DENIED -- ' + log.accessLevel + ' CLEARANCE REQUIRED', 'red');
+      addLine('');
+      return;
+    }
+
+    if (log.password) {
+      addLine('');
+      addLine('  FILE ENCRYPTED -- PASSWORD REQUIRED', 'amber');
+      addLine('  ENTER PASSWORD FOR: ' + log.filename);
+      passwordMode = { logIndex: LOGS.indexOf(log) };
+      input.type = 'password';
+      return;
+    }
+
+    displayLog(log);
+  }
+
+  function displayLog(log) {
+    addLine('');
+    addLine('+--- ' + log.title + ' ---+');
+    addLine('|');
+    addLogContent(log.content);
+    addLine('|');
+    addLine('+' + '-'.repeat(log.title.length + 10) + '+');
+    addLine('');
+  }
+
+  window._openFile = function(fname) {
+    addCommandLine('OPEN ' + fname);
+    openFile(fname);
+    input.focus();
+  };
+
+  input.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      handleCommand(input.value);
+      input.value = '';
+    }
+  });
+
+  document.getElementById('crt').addEventListener('click', function(e) {
+    if (!e.target.classList.contains('clickable')) input.focus();
+  });
+
+  boot();
+})();
+</script>
+</body>
+</html>
