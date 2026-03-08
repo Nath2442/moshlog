@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WARDEN CONTROL PANEL</title>
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --amber: #ffb000;
+  --amber-dim: rgba(255,176,0,0.3);
+  --amber-bg: rgba(255,176,0,0.03);
+  --bg: #0a0a0a;
+  --bg2: #111;
+  --glow: #33ff33;
+  --glow-dim: #1a8c1a;
+  --red: #ff3333;
+}
+
+html, body {
+  background: var(--bg);
+  color: var(--amber);
+  font-family: 'VT323', monospace;
+  min-height: 100vh;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+h1 {
+  font-size: 28px;
+  text-shadow: 0 0 8px rgba(255,176,0,0.3);
+  border-bottom: 2px solid var(--amber);
+  padding-bottom: 10px;
+  margin-bottom: 20px;
+}
+
+h2 {
+  font-size: 22px;
+  margin: 24px 0 12px;
+  text-shadow: 0 0 6px rgba(255,176,0,0.2);
+}
+
+h3 {
+  font-size: 18px;
+  margin: 16px 0 8px;
+  color: var(--amber);
+}
+
+.help-text {
+  color: rgba(255,176,0,0.6);
+  font-size: 14px;
+  margin: 4px 0 12px;
+  font-family: 'Share Tech Mono', monospace;
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.tab-btn {
+  background: transparent;
+  border: 1px solid var(--amber-dim);
+  color: var(--amber);
+  font-family: 'VT323', monospace;
+  font-size: 18px;
+  padding: 8px 20px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.tab-btn:hover { border-color: var(--amber); }
+.tab-btn.active { background: var(--amber); color: var(--bg); }
+
+/* Form elements */
+.field {
+  margin: 10px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+label {
+  font-size: 14px;
+  color: rgba(255,176,0,0.7);
+}
+
+input[type="text"], select {
+  background: var(--bg);
+  border: 1px solid var(--amber-dim);
+  color: var(--amber);
+  font-family: 'VT323', monospace;
+  font-size: 16px;
+  padding: 6px 10px;
+  outline: none;
+  width: 100%;
+}
+input[type="text"]:focus, select:focus, textarea:focus {
+  border-color: var(--amber);
+}
+
+textarea {
+  background: var(--bg);
+  border: 1px solid var(--amber-dim);
+  color: var(--amber);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 14px;
+  padding: 8px 10px;
+  outline: none;
+  resize: vertical;
+  min-height: 100px;
+  line-height: 1.5;
+  width: 100%;
+}
+
+.btn {
+  background: transparent;
+  border: 1px solid var(--amber);
+  color: var(--amber);
+  font-family: 'VT323', monospace;
+  font-size: 16px;
+  padding: 6px 16px;
+  cursor: pointer;
+  transition: all 0.15s;
+  margin: 4px 4px 4px 0;
+}
+.btn:hover { background: var(--amber); color: var(--bg); }
+
+.btn-green { border-color: var(--glow); color: var(--glow); }
+.btn-green:hover { background: var(--glow); color: var(--bg); }
+
+.btn-red { border-color: var(--red); color: var(--red); }
+.btn-red:hover { background: var(--red); color: var(--bg); }
+
+.btn-large { font-size: 20px; padding: 10px 28px; }
+
+/* Cards */
+.card {
+  border: 1px solid var(--amber-dim);
+  padding: 12px;
+  margin: 8px 0;
+  background: var(--amber-bg);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.card-title { font-size: 18px; flex: 1; }
+
+.tag { font-size: 13px; padding: 2px 6px; border: 1px solid; margin-left: 4px; }
+.tag-lock { color: var(--amber); border-color: var(--amber-dim); }
+.tag-access { color: var(--glow-dim); border-color: rgba(51,255,51,0.2); }
+
+/* Terminal list */
+.terminal-card {
+  border: 1px solid var(--amber-dim);
+  padding: 14px;
+  margin: 8px 0;
+  background: var(--amber-bg);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.terminal-card:hover { border-color: var(--amber); }
+.terminal-card.active { border-color: var(--glow); background: rgba(51,255,51,0.05); }
+
+/* Output area */
+#config-output {
+  background: var(--bg);
+  border: 1px solid var(--amber-dim);
+  color: var(--glow);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 13px;
+  padding: 12px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 400px;
+  overflow-y: auto;
+  margin: 12px 0;
+  line-height: 1.4;
+}
+
+.status-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--bg2);
+  border-top: 1px solid var(--amber-dim);
+  padding: 8px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 50;
+  font-size: 14px;
+}
+
+.status-msg {
+  color: var(--glow);
+  transition: opacity 0.3s;
+}
+
+/* Spacing for fixed status bar */
+.container { padding-bottom: 60px; }
+
+.separator {
+  border: none;
+  border-top: 1px solid var(--amber-dim);
+  margin: 20px 0;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>⚠ WARDEN CONTROL PANEL</h1>
+  <p class="help-text">Visual editor for your terminal config.js — build your terminals here, then export.</p>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('globals')">GLOBAL SETTINGS</button>
+    <button class="tab-btn" onclick="switchTab('terminals')">TERMINALS</button>
+    <button class="tab-btn" onclick="switchTab('export')">EXPORT CONFIG</button>
+  </div>
+
+  <!-- ── GLOBALS TAB ── -->
+  <div id="tab-globals">
+    <h2>GLOBAL SETTINGS</h2>
+    <p class="help-text">These apply to all terminals unless overridden per-terminal.</p>
+    <div class="field">
+      <label>CORPORATION NAME</label>
+      <input type="text" id="g-corp" value="NAKATOMI CORPORATION">
+    </div>
+    <div class="field">
+      <label>DEFAULT TERMINAL VERSION</label>
+      <input type="text" id="g-version" value="v7.03.1">
+    </div>
+    <div class="field">
+      <label>DEFAULT BOOT MESSAGES (one per line)</label>
+      <textarea id="g-boot" rows="6">BIOS CHECK............OK
+MEMORY TEST...........4096K OK
+DRIVE A:..............OK
+NETWORK LINK..........ACTIVE
+SECURITY PROTOCOL.....ENABLED
+LOADING TERMINAL OS...</textarea>
+    </div>
+  </div>
+
+  <!-- ── TERMINALS TAB ── -->
+  <div id="tab-terminals" style="display:none">
+    <h2>TERMINAL PROFILES</h2>
+    <p class="help-text">Each terminal has a unique key used in the URL: yoursite.com/?t=KEY</p>
+
+    <div id="terminal-list"></div>
+    <button class="btn btn-green" onclick="addTerminal()" style="margin-top:12px">+ ADD TERMINAL</button>
+
+    <hr class="separator">
+
+    <!-- Terminal editor (shown when a terminal is selected) -->
+    <div id="terminal-editor" style="display:none">
+      <h2 id="editor-title">EDITING TERMINAL</h2>
+      <div class="field-row">
+        <div class="field">
+          <label>TERMINAL KEY (used in URL: ?t=THIS)</label>
+          <input type="text" id="t-key">
+        </div>
+        <div class="field">
+          <label>TERMINAL NAME (displayed on screen)</label>
+          <input type="text" id="t-name">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>ACCESS LEVEL</label>
+          <select id="t-access">
+            <option value="GENERAL">GENERAL</option>
+            <option value="MEDICAL">MEDICAL</option>
+            <option value="SCIENCE">SCIENCE</option>
+            <option value="SECURITY">SECURITY</option>
+            <option value="COMMAND">COMMAND</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>VERSION OVERRIDE (blank = use global)</label>
+          <input type="text" id="t-version" placeholder="(optional)">
+        </div>
+      </div>
+
+      <h3>DATA LOGS</h3>
+      <div id="log-list"></div>
+      <button class="btn btn-green" onclick="addLog()" style="margin-top:8px">+ ADD LOG</button>
+
+      <hr class="separator">
+
+      <!-- Log editor -->
+      <div id="log-editor" style="display:none">
+        <h3 id="log-editor-title">EDITING LOG</h3>
+        <div class="field-row">
+          <div class="field">
+            <label>FILENAME (e.g. report_01.log)</label>
+            <input type="text" id="l-filename">
+          </div>
+          <div class="field">
+            <label>TITLE</label>
+            <input type="text" id="l-title">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>CATEGORY</label>
+            <input type="text" id="l-category" placeholder="PERSONNEL">
+          </div>
+          <div class="field">
+            <label>TYPE</label>
+            <select id="l-type">
+              <option value="text">TEXT</option>
+              <option value="table">TABLE</option>
+              <option value="ascii">ASCII ART</option>
+            </select>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>ACCESS LEVEL</label>
+            <select id="l-access">
+              <option value="GENERAL">GENERAL</option>
+              <option value="MEDICAL">MEDICAL</option>
+              <option value="SCIENCE">SCIENCE</option>
+              <option value="SECURITY">SECURITY</option>
+              <option value="COMMAND">COMMAND</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>PASSWORD (blank = no lock)</label>
+            <input type="text" id="l-password" placeholder="(optional)">
+          </div>
+        </div>
+        <div class="field">
+          <label>CONTENT</label>
+          <textarea id="l-content" rows="12" placeholder="Log content goes here..."></textarea>
+        </div>
+        <div>
+          <button class="btn btn-green" onclick="saveLog()">SAVE LOG</button>
+          <button class="btn" onclick="cancelLogEdit()">CANCEL</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── EXPORT TAB ── -->
+  <div id="tab-export" style="display:none">
+    <h2>EXPORT CONFIG.JS</h2>
+    <p class="help-text">Click generate, then download the file. Replace the config.js in your hosted folder.</p>
+    <button class="btn btn-green btn-large" onclick="generateConfig()">GENERATE CONFIG.JS</button>
+    <div id="config-output" style="display:none"></div>
+    <div id="export-actions" style="display:none; margin-top: 12px;">
+      <button class="btn btn-green" onclick="downloadConfig()">DOWNLOAD config.js</button>
+      <button class="btn" onclick="copyConfig()">COPY TO CLIPBOARD</button>
+    </div>
+  </div>
+</div>
+
+<div class="status-bar">
+  <span>WARDEN CONTROL PANEL — MOTHERSHIP RPG</span>
+  <span class="status-msg" id="status-msg"></span>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // ── STATE ──
+  let data = {
+    corporationName: 'NAKATOMI CORPORATION',
+    defaultVersion: 'v7.03.1',
+    defaultBootMessages: [
+      'BIOS CHECK............OK',
+      'MEMORY TEST...........4096K OK',
+      'DRIVE A:..............OK',
+      'NETWORK LINK..........ACTIVE',
+      'SECURITY PROTOCOL.....ENABLED',
+      'LOADING TERMINAL OS...',
+    ],
+    terminals: {
+      'default': {
+        name: 'DECK TERMINAL 01',
+        accessLevel: 'GENERAL',
+        version: '',
+        logs: []
+      }
+    }
+  };
+
+  let currentTerminalKey = null;
+  let currentLogIndex = null;
+  let generatedConfig = '';
+
+  // ── PERSISTENCE (localStorage for warden only) ──
+  function saveState() {
+    syncGlobalsFromUI();
+    try { localStorage.setItem('warden-data', JSON.stringify(data)); } catch(e) {}
+  }
+
+  function loadState() {
+    try {
+      const saved = localStorage.getItem('warden-data');
+      if (saved) {
+        data = JSON.parse(saved);
+        loadGlobalsToUI();
+      }
+    } catch(e) {}
+  }
+
+  function syncGlobalsFromUI() {
+    data.corporationName = document.getElementById('g-corp').value;
+    data.defaultVersion = document.getElementById('g-version').value;
+    data.defaultBootMessages = document.getElementById('g-boot').value.split('\n');
+  }
+
+  function loadGlobalsToUI() {
+    document.getElementById('g-corp').value = data.corporationName;
+    document.getElementById('g-version').value = data.defaultVersion;
+    document.getElementById('g-boot').value = (data.defaultBootMessages || []).join('\n');
+  }
+
+  // ── TAB SWITCHING ──
+  window.switchTab = function(tab) {
+    saveState();
+    document.querySelectorAll('.tab-btn').forEach(function(b, i) {
+      b.classList.toggle('active', b.textContent.toLowerCase().includes(tab.substring(0, 4)));
+    });
+    ['globals', 'terminals', 'export'].forEach(function(t) {
+      document.getElementById('tab-' + t).style.display = t === tab ? 'block' : 'none';
+    });
+    if (tab === 'terminals') renderTerminalList();
+  };
+
+  // ── TERMINAL LIST ──
+  function renderTerminalList() {
+    const list = document.getElementById('terminal-list');
+    list.innerHTML = '';
+    Object.keys(data.terminals).forEach(function(key) {
+      const t = data.terminals[key];
+      const card = document.createElement('div');
+      card.className = 'terminal-card' + (key === currentTerminalKey ? ' active' : '');
+      card.innerHTML = '<div class="card-header">' +
+        '<span class="card-title"><strong>?t=' + esc(key) + '</strong> — ' + esc(t.name) + '</span>' +
+        '<span class="tag tag-access">' + esc(t.accessLevel) + '</span>' +
+        '<span style="color:rgba(255,176,0,0.5)">' + (t.logs || []).length + ' logs</span>' +
+        '<button class="btn btn-red" onclick="event.stopPropagation();deleteTerminal(\'' + esc(key) + '\')">DEL</button>' +
+        '</div>';
+      card.addEventListener('click', function() { selectTerminal(key); });
+      list.appendChild(card);
+    });
+  }
+
+  function selectTerminal(key) {
+    saveCurrentTerminal();
+    currentTerminalKey = key;
+    currentLogIndex = null;
+    const t = data.terminals[key];
+    document.getElementById('terminal-editor').style.display = 'block';
+    document.getElementById('log-editor').style.display = 'none';
+    document.getElementById('editor-title').textContent = 'EDITING: ' + key.toUpperCase();
+    document.getElementById('t-key').value = key;
+    document.getElementById('t-name').value = t.name || '';
+    document.getElementById('t-access').value = t.accessLevel || 'GENERAL';
+    document.getElementById('t-version').value = t.version || '';
+    renderLogList();
+    renderTerminalList();
+  }
+
+  function saveCurrentTerminal() {
+    if (!currentTerminalKey || !data.terminals[currentTerminalKey]) return;
+    const newKey = document.getElementById('t-key').value.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '') || currentTerminalKey;
+    const t = {
+      name: document.getElementById('t-name').value,
+      accessLevel: document.getElementById('t-access').value,
+      version: document.getElementById('t-version').value,
+      logs: data.terminals[currentTerminalKey].logs || []
+    };
+    if (newKey !== currentTerminalKey) {
+      delete data.terminals[currentTerminalKey];
+      currentTerminalKey = newKey;
+    }
+    data.terminals[currentTerminalKey] = t;
+  }
+
+  window.addTerminal = function() {
+    saveCurrentTerminal();
+    let key = 'terminal_' + Date.now().toString(36);
+    data.terminals[key] = { name: 'NEW TERMINAL', accessLevel: 'GENERAL', version: '', logs: [] };
+    saveState();
+    selectTerminal(key);
+  };
+
+  window.deleteTerminal = function(key) {
+    if (Object.keys(data.terminals).length <= 1) {
+      showStatus('Cannot delete last terminal');
+      return;
+    }
+    if (!confirm('Delete terminal "' + key + '" and all its logs?')) return;
+    delete data.terminals[key];
+    if (currentTerminalKey === key) {
+      currentTerminalKey = null;
+      document.getElementById('terminal-editor').style.display = 'none';
+    }
+    saveState();
+    renderTerminalList();
+  };
+
+  // ── LOG LIST ──
+  function renderLogList() {
+    const logs = data.terminals[currentTerminalKey]?.logs || [];
+    const list = document.getElementById('log-list');
+    list.innerHTML = '';
+    if (logs.length === 0) {
+      list.innerHTML = '<p class="help-text">No logs yet. Click "+ ADD LOG" to create one.</p>';
+      return;
+    }
+    logs.forEach(function(log, i) {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = '<div class="card-header">' +
+        '<span class="card-title">' + esc(log.filename) + ' — ' + esc(log.title) + '</span>' +
+        (log.password ? '<span class="tag tag-lock">LOCKED</span>' : '') +
+        '<span class="tag tag-access">' + esc(log.accessLevel) + '</span>' +
+        '<button class="btn" onclick="editLog(' + i + ')">EDIT</button>' +
+        '<button class="btn btn-red" onclick="deleteLog(' + i + ')">DEL</button>' +
+        '</div>';
+      list.appendChild(card);
+    });
+  }
+
+  window.addLog = function() {
+    saveCurrentTerminal();
+    const logs = data.terminals[currentTerminalKey].logs;
+    logs.push({
+      filename: 'new_file.log',
+      title: 'NEW LOG ENTRY',
+      category: 'GENERAL',
+      accessLevel: 'GENERAL',
+      password: null,
+      type: 'text',
+      content: ''
+    });
+    saveState();
+    editLog(logs.length - 1);
+  };
+
+  window.editLog = function(idx) {
+    currentLogIndex = idx;
+    const log = data.terminals[currentTerminalKey].logs[idx];
+    document.getElementById('log-editor').style.display = 'block';
+    document.getElementById('log-editor-title').textContent = 'EDITING LOG: ' + log.filename;
+    document.getElementById('l-filename').value = log.filename;
+    document.getElementById('l-title').value = log.title;
+    document.getElementById('l-category').value = log.category;
+    document.getElementById('l-type').value = log.type;
+    document.getElementById('l-access').value = log.accessLevel;
+    document.getElementById('l-password').value = log.password || '';
+    document.getElementById('l-content').value = log.content;
+  };
+
+  window.saveLog = function() {
+    if (currentLogIndex === null) return;
+    const log = data.terminals[currentTerminalKey].logs[currentLogIndex];
+    log.filename = document.getElementById('l-filename').value;
+    log.title = document.getElementById('l-title').value;
+    log.category = document.getElementById('l-category').value;
+    log.type = document.getElementById('l-type').value;
+    log.accessLevel = document.getElementById('l-access').value;
+    log.password = document.getElementById('l-password').value || null;
+    log.content = document.getElementById('l-content').value;
+    document.getElementById('log-editor').style.display = 'none';
+    currentLogIndex = null;
+    saveState();
+    renderLogList();
+    showStatus('Log saved');
+  };
+
+  window.cancelLogEdit = function() {
+    document.getElementById('log-editor').style.display = 'none';
+    currentLogIndex = null;
+  };
+
+  window.deleteLog = function(idx) {
+    if (!confirm('Delete this log?')) return;
+    data.terminals[currentTerminalKey].logs.splice(idx, 1);
+    if (currentLogIndex === idx) {
+      document.getElementById('log-editor').style.display = 'none';
+      currentLogIndex = null;
+    }
+    saveState();
+    renderLogList();
+    showStatus('Log deleted');
+  };
+
+  // ── EXPORT ──
+  window.generateConfig = function() {
+    saveCurrentTerminal();
+    syncGlobalsFromUI();
+    saveState();
+
+    let out = '';
+    out += '// NAKATOMI CORPORATION — TERMINAL CONFIG\n';
+    out += '// Generated by Warden Control Panel\n';
+    out += '// Date: ' + new Date().toISOString().split('T')[0] + '\n\n';
+    out += 'const TERMINAL_CONFIG = ' + prettyPrint(buildExportData()) + ';\n';
+
+    generatedConfig = out;
+    document.getElementById('config-output').textContent = out;
+    document.getElementById('config-output').style.display = 'block';
+    document.getElementById('export-actions').style.display = 'block';
+    showStatus('Config generated');
+  };
+
+  function buildExportData() {
+    const exp = {
+      corporationName: data.corporationName,
+      defaultVersion: data.defaultVersion,
+      defaultBootMessages: data.defaultBootMessages,
+      terminals: {}
+    };
+    Object.keys(data.terminals).forEach(function(key) {
+      const t = data.terminals[key];
+      const term = {
+        name: t.name,
+        accessLevel: t.accessLevel,
+      };
+      if (t.version) term.version = t.version;
+      term.logs = (t.logs || []).map(function(l) {
+        const log = {
+          filename: l.filename,
+          title: l.title,
+          category: l.category,
+          accessLevel: l.accessLevel,
+          password: l.password || null,
+          type: l.type,
+          content: l.content
+        };
+        return log;
+      });
+      exp.terminals[key] = term;
+    });
+    return exp;
+  }
+
+  // Pretty-print JSON with template literals for content strings
+  function prettyPrint(obj, indent) {
+    indent = indent || 0;
+    const pad = '  '.repeat(indent);
+    const pad1 = '  '.repeat(indent + 1);
+
+    if (obj === null) return 'null';
+    if (obj === undefined) return 'undefined';
+    if (typeof obj === 'string') {
+      // Multi-line strings use template literals
+      if (obj.includes('\n')) {
+        return '`' + obj.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$\{/g, '\\${') + '`';
+      }
+      return JSON.stringify(obj);
+    }
+    if (typeof obj === 'number' || typeof obj === 'boolean') return String(obj);
+
+    if (Array.isArray(obj)) {
+      if (obj.length === 0) return '[]';
+      // Check if simple array of strings (like bootMessages)
+      const allSimple = obj.every(function(v) { return typeof v === 'string' && !v.includes('\n') && v.length < 50; });
+      if (allSimple && obj.length <= 8) {
+        const items = obj.map(function(v) { return JSON.stringify(v); });
+        const oneLine = '[' + items.join(', ') + ']';
+        if (oneLine.length < 80) return oneLine;
+      }
+      let result = '[\n';
+      obj.forEach(function(v, i) {
+        result += pad1 + prettyPrint(v, indent + 1);
+        if (i < obj.length - 1) result += ',';
+        result += '\n';
+      });
+      result += pad + ']';
+      return result;
+    }
+
+    if (typeof obj === 'object') {
+      const keys = Object.keys(obj);
+      if (keys.length === 0) return '{}';
+      let result = '{\n';
+      keys.forEach(function(k, i) {
+        const key = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(k) ? k : JSON.stringify(k);
+        result += pad1 + key + ': ' + prettyPrint(obj[k], indent + 1);
+        if (i < keys.length - 1) result += ',';
+        result += '\n';
+      });
+      result += pad + '}';
+      return result;
+    }
+
+    return String(obj);
+  }
+
+  window.downloadConfig = function() {
+    if (!generatedConfig) return;
+    const blob = new Blob([generatedConfig], { type: 'application/javascript' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'config.js';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    showStatus('Downloaded config.js');
+  };
+
+  window.copyConfig = function() {
+    if (!generatedConfig) return;
+    navigator.clipboard.writeText(generatedConfig).then(function() {
+      showStatus('Copied to clipboard');
+    }).catch(function() {
+      // Fallback
+      const ta = document.createElement('textarea');
+      ta.value = generatedConfig;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      showStatus('Copied to clipboard');
+    });
+  };
+
+  // ── UTILS ──
+  function esc(s) {
+    const d = document.createElement('div');
+    d.textContent = s || '';
+    return d.innerHTML;
+  }
+
+  function showStatus(msg) {
+    const el = document.getElementById('status-msg');
+    el.textContent = msg;
+    el.style.opacity = '1';
+    setTimeout(function() { el.style.opacity = '0'; }, 2500);
+  }
+
+  // ── AUTO-SAVE on input changes ──
+  document.addEventListener('change', function() { saveState(); });
+
+  // ── INIT ──
+  loadState();
+  renderTerminalList();
+
+})();
+</script>
+</body>
+</html>
